@@ -242,7 +242,7 @@ void CommandManager::Initialize()
 			ephemeral = command && command->IsEphemeral();
 		}
 
-		auto acknowledge = [&data, ephemeral](int response_type)
+		auto acknowledge = [&data](int response_type, bool ephemeral)
 		{
 			json response = { { "type", response_type } };
 			if (ephemeral)
@@ -260,9 +260,10 @@ void CommandManager::Initialize()
 		};
 
 		bool acknowledged = false;
+		bool const acknowledgement_ephemeral = interaction_type == 5 || ephemeral;
 		if (interaction_type == 2 || interaction_type == 5)
 		{
-			acknowledged = acknowledge(5); // DeferredChannelMessageWithSource
+			acknowledged = acknowledge(5, acknowledgement_ephemeral); // DeferredChannelMessageWithSource
 			if (!acknowledged)
 			{
 				return;
@@ -283,7 +284,7 @@ void CommandManager::Initialize()
 		}
 
 		auto const interactionid = CommandInteractionManager::Get()->AddCommandInteraction(
-			userid, data, acknowledged, ephemeral);
+			userid, data, acknowledged, acknowledgement_ephemeral);
 		PawnDispatcher::Get()->Dispatch([interaction_type, userid, interactionid, data]() mutable
 		{
 			auto const& interaction =
