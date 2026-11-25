@@ -140,4 +140,21 @@ public DCC_OnModalSubmit(DCC_Interaction:interaction, DCC_User:user)
 
 Button styles are `DCC_BUTTON_PRIMARY`, `DCC_BUTTON_SECONDARY`, `DCC_BUTTON_SUCCESS`, and `DCC_BUTTON_DANGER`. Text inputs support `DCC_MODAL_SHORT` and `DCC_MODAL_PARAGRAPH`. A modal can contain one to five inputs; each input's `custom_id` is used to retrieve its submitted value.
 
-Button interactions must be acknowledged within Discord's response window. Open a modal with `DCC_ShowModal`, send a response with `DCC_SendInteractionMessage`, or call `DCC_DeferInteraction` before doing longer work. Modal submissions are deferred automatically, so `DCC_SendInteractionMessage` can be used to send the response. The current button-message native adds one button to a plain channel message.
+Button interactions must be acknowledged within Discord's response window. Open a modal with `DCC_ShowModal`, send a response with `DCC_SendInteractionMessage`, or call `DCC_DeferInteraction` before doing longer work. Modal submissions are deferred automatically, so `DCC_SendInteractionMessage` can be used to send the response. Outside an interaction callback, `DCC_SendChannelMessageWithButton` sends a normal channel message. From a matching interaction callback, it responds to or edits that interaction when no channel-message callback was supplied. Pass `true` for `ephemeral` to make an unacknowledged response visible only to the invoking user:
+
+```pawn
+DCC_SendChannelMessageWithButton(channel, "Private response", "Continue",
+    "continue", DCC_BUTTON_PRIMARY, true);
+```
+
+An already-deferred interaction can only remain ephemeral if its initial defer was ephemeral. Ephemeral button responses cannot use the channel-message callback.
+
+## Ephemeral slash command responses
+
+Pass `true` as the final `ephemeral` argument to `DCC_CreateCommand` to make the command's response visible only to the user who invoked it:
+
+```pawn
+DCC_CreateCommand("secret", "A private response", "OnSecretCommand", true, DCC_INVALID_GUILD, true);
+```
+
+The default is `false`, preserving public responses.

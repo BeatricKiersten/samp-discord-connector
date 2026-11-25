@@ -27,7 +27,7 @@ class CommandInteraction
 {
 public:
 	CommandInteraction(CommandInteractionId_t id, UserId_t user, nlohmann::json const& interaction_json,
-		bool acknowledged);
+		bool acknowledged, bool ephemeral);
 	~CommandInteraction() = default;
 	void ParseOptions(nlohmann::json const& interaction_json, std::string const& guildid);
 	void AddInteractionOption(CommandInteractionOption_t &option);
@@ -71,6 +71,7 @@ public:
 	bool Respond(json const& response);
 	void SendEmbed(EmbedId_t embedid, const std::string message = "");
 	void SendInteractionMessage(const std::string message);
+	bool SendInteractionMessage(const std::string message, json const& components, bool ephemeral);
 
 private:
 	CommandInteractionId_t m_ID;
@@ -81,6 +82,7 @@ private:
 	GuildId_t m_Guild = 0;
 	UserId_t m_InteractionUser;
 	bool m_Acknowledged;
+	bool m_Ephemeral;
 	std::vector<CommandInteractionOption_t> m_InteractionOptions;
 	std::vector<UserId_t> m_Mentions;
 	std::map<std::string, std::string> m_ModalInputs;
@@ -98,7 +100,7 @@ private:
 public:
 	CommandInteraction_t const& FindCommandInteraction(CommandInteractionId_t interaction);
 	CommandInteractionId_t AddCommandInteraction(UserId_t user, nlohmann::json const& interaction_json,
-		bool acknowledged);
+		bool acknowledged, bool ephemeral);
 	bool DeleteCommandInteraction(CommandInteractionId_t interaction);
 
 	CommandInteractionId_t m_CurrentInteractionID = 0;

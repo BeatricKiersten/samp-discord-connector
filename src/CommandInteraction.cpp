@@ -16,9 +16,10 @@
 #include <functional>
 
 CommandInteraction::CommandInteraction(CommandInteractionId_t id, UserId_t user,
-	nlohmann::json const& interaction_json, bool acknowledged) :
+	nlohmann::json const& interaction_json, bool acknowledged, bool ephemeral) :
 	m_InteractionUser(user),
-	m_Acknowledged(acknowledged)
+	m_Acknowledged(acknowledged),
+	m_Ephemeral(ephemeral)
 {
 	m_ID = id;
 	m_IDSnowflake = interaction_json.at("id").get<std::string>();
@@ -196,6 +197,13 @@ bool CommandInteraction::Respond(json const& response)
 	}
 
 	m_Acknowledged = true;
+	auto data = response.find("data");
+	if (data != response.end())
+	{
+		auto flags = data->find("flags");
+		m_Ephemeral = flags != data->end() && flags->is_number_integer()
+			&& (flags->get<int>() & 64) != 0;
+	}
 	Network::Get()->Http().Post(
 		fmt::format("/interactions/{:s}/{:s}/callback", m_IDSnowflake, m_Token), json_str);
 	return true;
@@ -285,6 +293,42 @@ void CommandInteraction::SendInteractionMessage(const std::string message)
 	Network::Get()->Http().Patch(fmt::format("/webhooks/{:s}/{:s}/messages/@original", ThisBot::Get()->GetApplicationID(), m_Token), json_str);
 }
 
+bool CommandInteraction::SendInteractionMessage(const std::string message,
+	json const& components, bool ephemeral)
+{
+	json data = {
+		{ "content", message },
+		{ "components", components }
+	};
+
+	if (!m_Acknowledged)
+	{
+		if (ephemeral)
+			data["flags"] = 64;
+		return Respond({ { "type", 4 }, { "data", data } });
+	}
+
+	if (ephemeral && !m_Ephemeral)
+	{
+		Logger::Get()->Log(samplog_LogLevel::ERROR,
+			"cannot make an acknowledged non-ephemeral interaction ephemeral");
+		return false;
+	}
+
+	std::string json_str;
+	if (!utils::TryDumpJson(data, json_str))
+	{
+		Logger::Get()->Log(samplog_LogLevel::ERROR,
+			"can't serialize interaction message: {}", json_str);
+		return false;
+	}
+
+	Network::Get()->Http().Patch(
+		fmt::format("/webhooks/{:s}/{:s}/messages/@original",
+			ThisBot::Get()->GetApplicationID(), m_Token), json_str);
+	return true;
+}
+
 CommandInteraction_t const & CommandInteractionManager::FindCommandInteraction(CommandInteractionId_t interaction)
 {
 	static CommandInteraction_t invalid_command_interaction;
@@ -295,14 +339,14 @@ CommandInteraction_t const & CommandInteractionManager::FindCommandInteraction(C
 }
 
 CommandInteractionId_t CommandInteractionManager::AddCommandInteraction(UserId_t user,
-	nlohmann::json const& interaction_json, bool acknowledged)
+	nlohmann::json const& interaction_json, bool acknowledged, bool ephemeral)
 {
 	CommandInteractionId_t id = 1;
 	while (m_Interactions.find(id) != m_Interactions.end())
 		++id;
 
 	if (!m_Interactions.emplace(id, CommandInteraction_t(
-		new CommandInteraction(id, user, interaction_json, acknowledged))).first->second)
+		new CommandInteraction(id, user, interaction_json, acknowledged, ephemeral))).first->second)
 	{
 		Logger::Get()->Log(samplog_LogLevel::ERROR,
 			"can't create command interaction: duplicate key '{}'", id);

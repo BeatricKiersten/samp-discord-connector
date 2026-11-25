@@ -133,6 +133,12 @@ public:
 	void AllowEveryone(bool allow) {
 		m_DefaultEveryone = allow;
 	}
+	void SetEphemeral(bool ephemeral) {
+		m_Ephemeral = ephemeral;
+	}
+	bool IsEphemeral() const {
+		return m_Ephemeral;
+	}
 	/*void SetPermission(RoleId_t role, bool permission) {
 		m_Permissions.emplace(role, permission);
 	}*/
@@ -143,6 +149,7 @@ private:
 	std::string m_Description;
 	GuildId_t m_Guild;
 	bool m_DefaultEveryone = true;
+	bool m_Ephemeral = false;
 	std::map<std::string, CommandOption_t> m_Options;
 	//std::map<RoleId_t, bool> m_Permissions;
 	std::string m_Callback;

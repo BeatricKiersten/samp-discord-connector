@@ -222,9 +222,31 @@ void CommandManager::Initialize()
 			}
 		}
 
-		auto acknowledge = [&data](int response_type)
+		bool ephemeral = false;
+		if (interaction_type == 2)
+		{
+			std::string guild_snowflake;
+			GuildId_t guild_id = INVALID_GUILD_ID;
+			if (utils::TryGetJsonValue(data, guild_snowflake, "guild_id"))
+			{
+				auto const& guild = GuildManager::Get()->FindGuildById(guild_snowflake);
+				if (guild)
+					guild_id = guild->GetPawnId();
+			}
+
+			auto const& command_name = data.at("data").at("name").get<std::string>();
+			CommandId_t command_id = CommandManager::Get()->FindCommandIdByName(command_name, guild_id);
+			if (command_id == INVALID_COMMAND_ID && guild_id != INVALID_GUILD_ID)
+				command_id = CommandManager::Get()->FindCommandIdByName(command_name);
+			auto const& command = CommandManager::Get()->FindCommand(command_id);
+			ephemeral = command && command->IsEphemeral();
+		}
+
+		auto acknowledge = [&data, ephemeral](int response_type)
 		{
 			json response = { { "type", response_type } };
+			if (ephemeral)
+				response["data"]["flags"] = 64;
 			std::string json_str;
 			if (!utils::TryDumpJson(response, json_str))
 			{
@@ -261,7 +283,7 @@ void CommandManager::Initialize()
 		}
 
 		auto const interactionid = CommandInteractionManager::Get()->AddCommandInteraction(
-			userid, data, acknowledged);
+			userid, data, acknowledged, ephemeral);
 		PawnDispatcher::Get()->Dispatch([interaction_type, userid, interactionid, data]() mutable
 		{
 			auto const& interaction =
@@ -272,6 +294,7 @@ void CommandManager::Initialize()
 			}
 
 			pawn_cb::Error error;
+			CommandInteractionManager::Get()->m_CurrentInteractionID = interaction->GetPawnId();
 			if (interaction_type == 2 && userid)
 			{
 				auto const& command = CommandManager::Get()->FindCommand(
@@ -279,11 +302,8 @@ void CommandManager::Initialize()
 						data.at("data").at("name").get<std::string>(), interaction->GetGuildID()));
 				if (command)
 				{
-					CommandInteractionManager::Get()->m_CurrentInteractionID = interaction->GetPawnId();
 					pawn_cb::Callback::CallFirst(error, command->GetCallback().c_str(),
 						interaction->GetPawnId(), userid);
-					CommandInteractionManager::Get()->m_CurrentInteractionID =
-						INVALID_COMMAND_INTERACTION_ID;
 				}
 			}
 			else if (interaction_type == 3 && userid)
@@ -297,6 +317,8 @@ void CommandManager::Initialize()
 					interaction->GetPawnId(), userid);
 			}
 
+			CommandInteractionManager::Get()->m_CurrentInteractionID =
+				INVALID_COMMAND_INTERACTION_ID;
 			CommandInteractionManager::Get()->DeleteCommandInteraction(interaction->GetPawnId());
 		});
 	});

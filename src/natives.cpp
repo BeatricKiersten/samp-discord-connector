@@ -299,11 +299,15 @@ AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessage)
 }
 
 // native DCC_SendChannelMessageWithButton(DCC_Channel:channel, const message[],
-//		const label[], const custom_id[], style = 1, const callback[] = "",
+//		const label[], const custom_id[], style = 1, bool:ephemeral = false,
+//		const callback[] = "",
 //		const format[] = "", {Float, _}:...);
 AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessageWithButton)
 {
-	ScopedDebugInfo dbg_info(amx, "DCC_SendChannelMessageWithButton", params, "dsssdss");
+	bool const has_ephemeral = params[0] >= 6 * sizeof(cell)
+		&& (params[6] == 0 || params[6] == 1);
+	ScopedDebugInfo dbg_info(amx, "DCC_SendChannelMessageWithButton", params,
+		has_ephemeral ? "dsssdiss" : "dsssdss");
 
 	ChannelId_t channelid = static_cast<ChannelId_t>(params[1]);
 	Channel_t const& channel = ChannelManager::Get()->FindChannel(channelid);
@@ -326,11 +330,12 @@ AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessageWithButton)
 		return 0;
 	}
 
-	auto cb_name = amx_GetCppString(amx, params[6]);
-	auto cb_format = amx_GetCppString(amx, params[7]);
+	int const callback_index = has_ephemeral ? 7 : 6;
+	auto cb_name = amx_GetCppString(amx, params[callback_index]);
+	auto cb_format = amx_GetCppString(amx, params[callback_index + 1]);
 	pawn_cb::Error cb_error;
 	auto cb = pawn_cb::Callback::Prepare(
-		amx, cb_name.c_str(), cb_format.c_str(), params, 8, cb_error);
+		amx, cb_name.c_str(), cb_format.c_str(), params, callback_index + 2, cb_error);
 	if (cb_error && cb_error.get() != pawn_cb::Error::Type::EMPTY_NAME)
 	{
 		Logger::Get()->LogNative(samplog_LogLevel::ERROR, "could not prepare callback");
@@ -349,6 +354,33 @@ AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessageWithButton)
 			{ "components", json::array({ button }) }
 		}
 	});
+
+	auto const ephemeral = has_ephemeral && params[6] != 0;
+	auto const interaction_id = CommandInteractionManager::Get()->m_CurrentInteractionID;
+	if (ephemeral && cb)
+	{
+		Logger::Get()->LogNative(samplog_LogLevel::ERROR,
+			"ephemeral interaction button messages cannot use a channel message callback");
+		return 0;
+	}
+	if (interaction_id != INVALID_COMMAND_INTERACTION_ID)
+	{
+		auto const& interaction =
+			CommandInteractionManager::Get()->FindCommandInteraction(interaction_id);
+		if (interaction && interaction->GetChannelID() == channelid && !cb)
+		{
+			return interaction->SendInteractionMessage(
+				message, components, ephemeral) ? 1 : 0;
+		}
+	}
+
+	if (ephemeral)
+	{
+		Logger::Get()->LogNative(samplog_LogLevel::ERROR,
+			"ephemeral button messages must be sent from a matching interaction callback");
+		return 0;
+	}
+
 	channel->SendMessage(std::move(message), std::move(cb), components);
 	return 1;
 }
@@ -2988,16 +3020,17 @@ AMX_DECLARE_NATIVE(Native::DCC_CacheChannelMessage)
 	return 1;
 }
 
-// native DCC_Command:DCC_CreateCommand(const command_name[DCC_COMMAND_SIZE], const description[DCC_COMMAND_DESCRIPTION_SIZE], const callback[], bool:allow_everyone = true, DCC_Guild:guild = DCC_INVALID_GUILD);
+// native DCC_Command:DCC_CreateCommand(const command_name[DCC_COMMAND_SIZE], const description[DCC_COMMAND_DESCRIPTION_SIZE], const callback[], bool:allow_everyone = true, DCC_Guild:guild = DCC_INVALID_GUILD, bool:ephemeral = false);
 AMX_DECLARE_NATIVE(Native::DCC_CreateCommand)
 {
-	ScopedDebugInfo dbg_info(amx, "DCC_CreateCommand", params, "sssii");
+	const char* params_format = params[0] >= 6 * sizeof(cell) ? "sssiii" : "sssii";
+	ScopedDebugInfo dbg_info(amx, "DCC_CreateCommand", params, params_format);
 	const auto& name = amx_GetCppString(amx, params[1]);
 	const auto& description = amx_GetCppString(amx, params[2]);
 	const auto& callback = amx_GetCppString(amx, params[3]);
 	const auto& allow_everyone = static_cast<bool>(params[4]);
 	const auto& guild = static_cast<GuildId_t>(params[5]);
-	//const auto& permissions_size = static_cast<size_t>(params[6]);
+	const bool ephemeral = params[0] >= 6 * sizeof(cell) && params[6] != 0;
 
 	if (!GuildManager::Get()->FindGuild(guild) && guild != INVALID_GUILD_ID) {
 		Logger::Get()->LogNative(samplog_LogLevel::ERROR, "passed invalid guild id '{}'", guild);
@@ -3073,6 +3106,7 @@ AMX_DECLARE_NATIVE(Native::DCC_CreateCommand)
 		option->SetRequired(false);
 		option->SetDescription("just type");
 		command->AllowEveryone(allow_everyone);
+		command->SetEphemeral(ephemeral);
 		command->AddOption("arguments", option);
 		command->SetGuild(guild);
 		command->HandleNewCreation();
@@ -3081,6 +3115,7 @@ AMX_DECLARE_NATIVE(Native::DCC_CreateCommand)
 	{
 		auto & command = CommandManager::Get()->FindCommand(id);
 		command->SetCallback(callback);
+		command->SetEphemeral(ephemeral);
 	}
 	return id;
 }
