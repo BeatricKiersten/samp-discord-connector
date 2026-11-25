@@ -2932,16 +2932,17 @@ AMX_DECLARE_NATIVE(Native::DCC_CacheChannelMessage)
 	return 1;
 }
 
-// native DCC_Command:DCC_CreateCommand(const command_name[DCC_COMMAND_SIZE], const description[DCC_COMMAND_DESCRIPTION_SIZE], const callback[], bool:allow_everyone = true, DCC_Guild:guild = DCC_INVALID_GUILD);
+// native DCC_Command:DCC_CreateCommand(const command_name[DCC_COMMAND_SIZE], const description[DCC_COMMAND_DESCRIPTION_SIZE], const callback[], bool:allow_everyone = true, DCC_Guild:guild = DCC_INVALID_GUILD, bool:ephemeral = false);
 AMX_DECLARE_NATIVE(Native::DCC_CreateCommand)
 {
-	ScopedDebugInfo dbg_info(amx, "DCC_CreateCommand", params, "sssii");
+	const char* params_format = params[0] >= 6 * sizeof(cell) ? "sssiii" : "sssii";
+	ScopedDebugInfo dbg_info(amx, "DCC_CreateCommand", params, params_format);
 	const auto& name = amx_GetCppString(amx, params[1]);
 	const auto& description = amx_GetCppString(amx, params[2]);
 	const auto& callback = amx_GetCppString(amx, params[3]);
 	const auto& allow_everyone = static_cast<bool>(params[4]);
 	const auto& guild = static_cast<GuildId_t>(params[5]);
-	//const auto& permissions_size = static_cast<size_t>(params[6]);
+	const bool ephemeral = params[0] >= 6 * sizeof(cell) && params[6] != 0;
 
 	if (!GuildManager::Get()->FindGuild(guild) && guild != INVALID_GUILD_ID) {
 		Logger::Get()->LogNative(samplog_LogLevel::ERROR, "passed invalid guild id '{}'", guild);
@@ -3017,6 +3018,7 @@ AMX_DECLARE_NATIVE(Native::DCC_CreateCommand)
 		option->SetRequired(false);
 		option->SetDescription("just type");
 		command->AllowEveryone(allow_everyone);
+		command->SetEphemeral(ephemeral);
 		command->AddOption("arguments", option);
 		command->SetGuild(guild);
 		command->HandleNewCreation();
@@ -3025,6 +3027,7 @@ AMX_DECLARE_NATIVE(Native::DCC_CreateCommand)
 	{
 		auto & command = CommandManager::Get()->FindCommand(id);
 		command->SetCallback(callback);
+		command->SetEphemeral(ephemeral);
 	}
 	return id;
 }

@@ -106,3 +106,13 @@ Set your Discord bot token in the server configuration or environment:
 - `DCC_BOT_TOKEN`
 
 Never share your bot token publicly.
+
+## Ephemeral slash command responses
+
+Pass `true` as the final `ephemeral` argument to `DCC_CreateCommand` to make the command's response visible only to the user who invoked it:
+
+```pawn
+DCC_CreateCommand("secret", "A private response", "OnSecretCommand", true, DCC_INVALID_GUILD, true);
+```
+
+The default is `false`, preserving public responses.

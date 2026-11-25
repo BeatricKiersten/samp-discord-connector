@@ -203,12 +203,28 @@ void CommandManager::Initialize()
 	{
 		if (data.find("type") != data.end() && data.at("type").get<int>() == 2 /*application command*/)
 		{
-			json my_awesome_json;
+			json response;
 			std::string json_str;
 
+			response["type"] = 5; // DeferredChannelMessageWithSource
+			std::string guild_snowflake;
+			GuildId_t guild_id = INVALID_GUILD_ID;
+			if (utils::TryGetJsonValue(data, guild_snowflake, "guild_id"))
+			{
+				auto const& guild = GuildManager::Get()->FindGuildById(guild_snowflake);
+				if (guild)
+					guild_id = guild->GetPawnId();
+			}
 
-			my_awesome_json["type"] = 5; // DeferredChannelMessageWithSource
-			if (!utils::TryDumpJson(my_awesome_json, json_str))
+			auto const& command_name = data.at("data").at("name").get<std::string>();
+			CommandId_t command_id = CommandManager::Get()->FindCommandIdByName(command_name, guild_id);
+			if (command_id == INVALID_COMMAND_ID && guild_id != INVALID_GUILD_ID)
+				command_id = CommandManager::Get()->FindCommandIdByName(command_name);
+			auto const& command = CommandManager::Get()->FindCommand(command_id);
+			if (command && command->IsEphemeral())
+				response["data"]["flags"] = 64;
+
+			if (!utils::TryDumpJson(response, json_str))
 			{
 				Logger::Get()->Log(samplog_LogLevel::ERROR, "can't serialize JSON: {}", json_str);
 				return;
