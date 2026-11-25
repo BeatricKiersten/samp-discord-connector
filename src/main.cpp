@@ -189,7 +189,7 @@ extern "C" const AMX_NATIVE_INFO native_list[] =
 	AMX_DEFINE_NATIVE(DCC_IsChannelNsfw)
 	AMX_DEFINE_NATIVE(DCC_GetChannelParentCategory)
 	AMX_DEFINE_NATIVE(DCC_SendChannelMessage)
-	AMX_DEFINE_NATIVE(DCC_SendChannelMessageWithButton)
+	AMX_DEFINE_NATIVE(DCC_SendChannelMessageWithButto)
 	AMX_DEFINE_NATIVE(DCC_SetChannelName)
 	AMX_DEFINE_NATIVE(DCC_SetChannelTopic)
 	AMX_DEFINE_NATIVE(DCC_SetChannelPosition)

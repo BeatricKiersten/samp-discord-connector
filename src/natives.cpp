@@ -298,15 +298,15 @@ AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessage)
 	return 1;
 }
 
-// native DCC_SendChannelMessageWithButton(DCC_Channel:channel, const message[],
+// native DCC_SendChannelMessageWithButto(DCC_Channel:channel, const message[],
 //		const label[], const custom_id[], style = 1, bool:ephemeral = false,
 //		const callback[] = "",
 //		const format[] = "", {Float, _}:...);
-AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessageWithButton)
+AMX_DECLARE_NATIVE(Native::DCC_SendChannelMessageWithButto)
 {
 	bool const has_ephemeral = params[0] >= 6 * sizeof(cell)
 		&& (params[6] == 0 || params[6] == 1);
-	ScopedDebugInfo dbg_info(amx, "DCC_SendChannelMessageWithButton", params,
+	ScopedDebugInfo dbg_info(amx, "DCC_SendChannelMessageWithButto", params,
 		has_ephemeral ? "dsssdiss" : "dsssdss");
 
 	ChannelId_t channelid = static_cast<ChannelId_t>(params[1]);

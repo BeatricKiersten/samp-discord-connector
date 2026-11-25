@@ -112,7 +112,7 @@ Never share your bot token publicly.
 The Pawn API supports a message with one button, button-click callbacks, and modal forms with up to five text inputs:
 
 ```pawn
-DCC_SendChannelMessageWithButton(channel, "Open the form", "Send feedback", "open_feedback");
+DCC_SendChannelMessageWithButto(channel, "Open the form", "Send feedback", "open_feedback");
 
 public DCC_OnButtonClick(DCC_Interaction:interaction, DCC_User:user)
 {
@@ -140,10 +140,10 @@ public DCC_OnModalSubmit(DCC_Interaction:interaction, DCC_User:user)
 
 Button styles are `DCC_BUTTON_PRIMARY`, `DCC_BUTTON_SECONDARY`, `DCC_BUTTON_SUCCESS`, and `DCC_BUTTON_DANGER`. Text inputs support `DCC_MODAL_SHORT` and `DCC_MODAL_PARAGRAPH`. A modal can contain one to five inputs; each input's `custom_id` is used to retrieve its submitted value.
 
-Button interactions must be acknowledged within Discord's response window. Open a modal with `DCC_ShowModal`, send a response with `DCC_SendInteractionMessage`, or call `DCC_DeferInteraction` before doing longer work. Modal submissions are deferred automatically, so `DCC_SendInteractionMessage` can be used to send the response. Outside an interaction callback, `DCC_SendChannelMessageWithButton` sends a normal channel message. From a matching interaction callback, it responds to or edits that interaction when no channel-message callback was supplied. Pass `true` for `ephemeral` to make an unacknowledged response visible only to the invoking user:
+Button interactions must be acknowledged within Discord's response window. Open a modal with `DCC_ShowModal`, send a response with `DCC_SendInteractionMessage`, or call `DCC_DeferInteraction` before doing longer work. Modal submissions are deferred automatically, so `DCC_SendInteractionMessage` can be used to send the response. Outside an interaction callback, `DCC_SendChannelMessageWithButto` sends a normal channel message. From a matching interaction callback, it responds to or edits that interaction when no channel-message callback was supplied. Pass `true` for `ephemeral` to make an unacknowledged response visible only to the invoking user:
 
 ```pawn
-DCC_SendChannelMessageWithButton(channel, "Private response", "Continue",
+DCC_SendChannelMessageWithButto(channel, "Private response", "Continue",
     "continue", DCC_BUTTON_PRIMARY, true);
 ```
 

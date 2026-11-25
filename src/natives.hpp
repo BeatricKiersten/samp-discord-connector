@@ -23,7 +23,7 @@ namespace Native
 	AMX_DECLARE_NATIVE(DCC_IsChannelNsfw);
 	AMX_DECLARE_NATIVE(DCC_GetChannelParentCategory);
 	AMX_DECLARE_NATIVE(DCC_SendChannelMessage);
-	AMX_DECLARE_NATIVE(DCC_SendChannelMessageWithButton);
+	AMX_DECLARE_NATIVE(DCC_SendChannelMessageWithButto);
 	AMX_DECLARE_NATIVE(DCC_SetChannelName);
 	AMX_DECLARE_NATIVE(DCC_SetChannelTopic);
 	AMX_DECLARE_NATIVE(DCC_SetChannelPosition);
